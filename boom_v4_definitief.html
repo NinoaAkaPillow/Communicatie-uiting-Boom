@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>De Boom van Groei — Nino Nabibaks</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,400&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body {
+  width:100%; min-height:100vh;
+  background:#0E0C06;
+  display:flex; flex-direction:column; align-items:center;
+  font-family:'Crimson Pro',Georgia,serif;
+  overflow-x:hidden;
+}
+.header {
+  text-align:center; padding:36px 24px 10px;
+  opacity:0; animation:hfade 1.4s ease forwards 0.3s;
+}
+@keyframes hfade { to { opacity:1; } }
+.header h1 {
+  font-family:'Playfair Display',serif;
+  font-size:2.1rem; font-weight:700;
+  color:#8FD870; letter-spacing:0.02em;
+}
+.header .sub { font-size:1rem; color:#C8A870; font-style:italic; margin-top:6px; }
+.header .course { font-size:0.78rem; color:#8A7040; letter-spacing:0.1em; text-transform:uppercase; margin-top:4px; }
+.stage-bar {
+  width:calc(100% - 48px); max-width:860px;
+  margin:4px auto 8px; text-align:center;
+  opacity:0; animation:hfade 1s ease forwards 1s;
+  min-height:22px;
+}
+#stage-text {
+  font-family:'Playfair Display',serif;
+  font-size:0.88rem; color:#C8A870;
+  letter-spacing:0.07em; font-style:italic;
+  transition:opacity 0.5s;
+}
+.canvas-wrap { width:100%; max-width:860px; padding:0 24px; }
+canvas { width:100%; display:block; border-radius:10px; }
+.legend-section {
+  max-width:860px; width:calc(100% - 48px);
+  margin:16px auto 40px;
+  background:#1A1408; border:1.5px solid #5A4820;
+  border-radius:14px; padding:22px 28px;
+  opacity:0; transition:opacity 1.2s;
+}
+.legend-section.visible { opacity:1; }
+.legend-section h3 {
+  font-family:'Playfair Display',serif;
+  font-size:0.95rem; color:#8FD870; margin-bottom:14px; letter-spacing:0.04em;
+}
+.legend-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px 24px; }
+.legend-item { display:flex; align-items:flex-start; gap:9px; font-size:0.87rem; color:#C0A878; line-height:1.5; }
+.ldot { width:13px; height:13px; border-radius:50%; flex-shrink:0; margin-top:3px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="course">Portfolio 2 — Zelfbewuste Veranderaar — BDKVER06R2</div>
+  <h1>De boom van groei</h1>
+  <div class="sub">Nino Nabibaks &mdash; 0989116 &mdash; Hogeschool Rotterdam</div>
+</div>
+<div class="stage-bar"><span id="stage-text">De wortels zoeken hun weg...</span></div>
+<div class="canvas-wrap">
+  <canvas id="c"></canvas>
+</div>
+<div class="legend-section" id="legend">
+  <h3>Legenda — symbolen en betekenis</h3>
+  <div class="legend-grid">
+    <div class="legend-item"><div class="ldot" style="background:#7A5528;border:2px solid #4A2E10;"></div><span><strong style="color:#D4B070">Wortels</strong> — karakter dat mij draagt: doorzetting, sociale kracht, eerlijkheid</span></div>
+    <div class="legend-item"><div class="ldot" style="background:#2A7020;border:2px solid #1A4A10;"></div><span><strong style="color:#D4B070">Kroon</strong> — groei en kennis opgebouwd door de jaren</span></div>
+    <div class="legend-item"><div class="ldot" style="background:#D4A820;border:2px solid #A08010;"></div><span><strong style="color:#D4B070">De sleutel</strong> — toegang tot mijn professionele toekomst</span></div>
+    <div class="legend-item"><div class="ldot" style="background:#888078;border:2px solid #585050;"></div><span><strong style="color:#D4B070">De steen</strong> — fundament én de zwaarte die ik heb gedragen</span></div>
+    <div class="legend-item"><div class="ldot" style="background:#C0A830;border:2px solid #8A7010;"></div><span><strong style="color:#D4B070">Het zaadje</strong> — het begin vol potentieel, nu volgroeide boom</span></div>
+    <div class="legend-item"><div class="ldot" style="background:#2A4A98;border:2px solid #0A1A60;"></div><span><strong style="color:#D4B070">Het boek</strong> — kennis en discipline door hard te werken</span></div>
+    <div class="legend-item"><div class="ldot" style="background:#F0C830;border:2px solid #A08010;"></div><span><strong style="color:#D4B070">De bliksem</strong> — de tegenslag die een litteken sloeg maar de boom niet brak</span></div>
+    <div class="legend-item"><div class="ldot" style="background:#C04020;border:2px solid #801010;"></div><span><strong style="color:#D4B070">Rode vruchten</strong> — professionele opbrengsten: luistervaardigheid, draagvlak, zelfkennis</span></div>
+    <div class="legend-item"><div class="ldot" style="background:#C02865;border:2px solid #780840;"></div><span><strong style="color:#D4B070">Roze vruchten</strong> — persoonlijke opbrengsten: verantwoordelijkheid, discipline, ambitie</span></div>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+const W = 860, H = 1080;
+canvas.width = W; canvas.height = H;
+
+// ── helpers ──────────────────────────────────────────────────────
+const lerp    = (a,b,t) => a+(b-a)*t;
+const clamp   = (v,lo,hi) => Math.max(lo,Math.min(hi,v));
+const ease    = t => t<.5?2*t*t:1-(-2*t+2)**2/2;
+const easeOut = t => 1-(1-t)**3;
+const easeIn  = t => t*t*t;
+const easeBack= t => { const c=1.70158+1; return 1+c*(t-1)**3+(c-1)*(t-1)**2; };
+
+// ── layout ───────────────────────────────────────────────────────
+const GY = 700;   // ground Y
+const TX = W/2;   // trunk centre X
+
+// ── stage label ──────────────────────────────────────────────────
+const stEl = document.getElementById('stage-text');
+let _stages = {};
+function setStageOnce(k,txt){
+  if(_stages[k]) return; _stages[k]=1;
+  stEl.style.opacity='0';
+  setTimeout(()=>{ stEl.textContent=txt; stEl.style.opacity='1'; },420);
+}
+
+// ── background ───────────────────────────────────────────────────
+function drawBg(){
+  let gs = ctx.createLinearGradient(0,0,0,GY);
+  gs.addColorStop(0,'#0E1F36'); gs.addColorStop(1,'#2A4820');
+  ctx.fillStyle=gs; ctx.fillRect(0,0,W,GY);
+
+  let gg = ctx.createLinearGradient(0,GY,0,H);
+  gg.addColorStop(0,'#7A5528'); gg.addColorStop(.2,'#5A3A18'); gg.addColorStop(1,'#1E0E04');
+  ctx.fillStyle=gg; ctx.fillRect(0,GY,W,H-GY);
+
+  // grass
+  ctx.save(); ctx.globalAlpha=.45;
+  ctx.beginPath(); ctx.ellipse(TX,GY,260,22,0,0,Math.PI*2);
+  ctx.fillStyle='#4A8C20'; ctx.fill(); ctx.restore();
+
+  // ground dash
+  ctx.save(); ctx.globalAlpha=.45; ctx.setLineDash([12,7]);
+  ctx.strokeStyle='#4A2E10'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(50,GY); ctx.lineTo(W-50,GY); ctx.stroke();
+  ctx.setLineDash([]); ctx.restore();
+}
+
+// ── underground section title ─────────────────────────────────────
+function drawUndergroundTitle(alpha){
+  if(alpha<=0) return;
+  ctx.save(); ctx.globalAlpha=alpha;
+  ctx.font="500 13px 'Playfair Display',serif";
+  ctx.fillStyle='#C8A870'; ctx.textAlign='center';
+  ctx.fillText('De ondergrond — wat mij als bedrijfskundige voedt', TX, GY+34);
+  ctx.restore();
+}
+
+// ── draw a polyline partially (progress 0‑1) ──────────────────────
+function drawPath(pts, w, col, alpha, prog){
+  if(alpha<=0||prog<=0) return;
+  let segs=[]; let total=0;
+  for(let i=1;i<pts.length;i++){
+    let d=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);
+    segs.push(d); total+=d;
+  }
+  let target=prog*total;
+  ctx.save(); ctx.globalAlpha=alpha;
+  ctx.strokeStyle=col; ctx.lineWidth=w; ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1]);
+  let acc=0;
+  for(let i=0;i<segs.length;i++){
+    if(acc+segs[i]>=target){
+      let f=(target-acc)/segs[i];
+      ctx.lineTo(lerp(pts[i][0],pts[i+1][0],f), lerp(pts[i][1],pts[i+1][1],f));
+      break;
+    }
+    acc+=segs[i]; ctx.lineTo(pts[i+1][0],pts[i+1][1]);
+  }
+  ctx.stroke(); ctx.restore();
+}
+
+// ── roots ─────────────────────────────────────────────────────────
+function drawRoots(prog){
+  const R=[
+    {pts:[[TX-22,GY],[TX-110,742],[TX-210,800],[TX-300,860],[TX-375,930]],w:17,col:'#7A5535'},
+    {pts:[[TX-32,GY],[TX-125,755],[TX-235,820],[TX-325,882],[TX-400,958]],w:9, col:'#5A3A20'},
+    {pts:[[TX-8, GY],[TX-18,770],[TX-28,840],[TX-35,910],[TX-38,975]], w:10,col:'#7A5535'},
+    {pts:[[TX+8, GY],[TX+18,770],[TX+28,840],[TX+35,910],[TX+38,975]], w:10,col:'#7A5535'},
+    {pts:[[TX+22,GY],[TX+110,742],[TX+210,800],[TX+300,860],[TX+375,930]],w:17,col:'#7A5535'},
+    {pts:[[TX+32,GY],[TX+125,755],[TX+235,820],[TX+325,882],[TX+400,958]],w:9, col:'#5A3A20'},
+    // branch offshoots
+    {pts:[[TX-215,800],[TX-275,852],[TX-325,895]],w:6,col:'#4A3018',off:0.38},
+    {pts:[[TX+215,800],[TX+275,852],[TX+325,895]],w:6,col:'#4A3018',off:0.38},
+  ];
+  for(let r of R){
+    let p = r.off ? clamp((prog-r.off)/(1-r.off),0,1) : prog;
+    drawPath(r.pts, r.w, r.col, 1, easeOut(p));
+  }
+}
+
+// ── root labels (coloured boxes for legibility) ───────────────────
+function drawRootLabels(alpha){
+  if(alpha<=0) return;
+  ctx.save(); ctx.globalAlpha=alpha;
+
+  const labels=[
+    { cx:76,  cy:GY+200, anchor:'left',
+      lines:[
+        {t:'Doorzettingsvermogen', bold:true, col:'#F0D070'},
+        {t:'Propedeuse — alleen doorgebeten', col:'#C8A850'},
+        {t:'Rechten & finance op eigen kracht', col:'#A88838', it:true},
+      ]
+    },
+    { cx:TX, cy:GY+250, anchor:'center',
+      lines:[
+        {t:'Sociale kracht & verbinding', bold:true, col:'#F0D070'},
+        {t:'Van nature mensen meenemen', col:'#C8A850'},
+        {t:'Luisteren, terugkoppelen, verbinden', col:'#A88838', it:true},
+      ]
+    },
+    { cx:W-76, cy:GY+200, anchor:'right',
+      lines:[
+        {t:'Eerlijkheid & zelfreflectie', bold:true, col:'#F0D070'},
+        {t:'Moeilijke periode — verantw. genomen', col:'#C8A850'},
+        {t:'Achterstand ingehaald, eerlijk over zichzelf', col:'#A88838', it:true},
+      ]
+    },
+  ];
+
+  for(let lb of labels){
+    // semi-transparent backing pill for legibility
+    let maxLen = Math.max(...lb.lines.map(l=>l.t.length));
+    let bw = maxLen*7.2+24, bh=lb.lines.length*18+12;
+    let bx = lb.anchor==='left'  ? lb.cx-8 :
+             lb.anchor==='right' ? lb.cx-bw+8 : lb.cx-bw/2;
+    ctx.save();
+    ctx.globalAlpha=alpha*0.55;
+    ctx.fillStyle='#0A0800';
+    ctx.beginPath(); ctx.roundRect(bx,lb.cy-16,bw,bh,6); ctx.fill();
+    ctx.restore();
+
+    ctx.textAlign = lb.anchor;
+    let tx = lb.anchor==='left' ? lb.cx+4 : lb.anchor==='right' ? lb.cx-4 : lb.cx;
+    for(let i=0;i<lb.lines.length;i++){
+      let ln=lb.lines[i];
+      ctx.font=(ln.bold?"700":"400")+(ln.it?" italic":"")+" "+(ln.bold?"13":"11")+"px 'Crimson Pro',Georgia,serif";
+      ctx.fillStyle=ln.col;
+      ctx.fillText(ln.t, tx, lb.cy+i*18);
+    }
+  }
+  ctx.restore();
+}
+
+// ── stone ────────────────────────────────────────────────────────
+function drawStone(alpha){
+  if(alpha<=0) return;
+  ctx.save(); ctx.globalAlpha=alpha;
+  let sx=TX, sy=GY+224;
+  let g=ctx.createRadialGradient(sx-14,sy-10,4,sx,sy,48);
+  g.addColorStop(0,'#C8C0B0'); g.addColorStop(.6,'#888078'); g.addColorStop(1,'#484240');
+  ctx.beginPath(); ctx.ellipse(sx,sy,48,30,0,0,Math.PI*2);
+  ctx.fillStyle=g; ctx.fill();
+  ctx.strokeStyle='#333028'; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.globalAlpha=alpha*.4;
+  ctx.beginPath(); ctx.ellipse(sx-14,sy-10,15,8,0,0,Math.PI*2);
+  ctx.fillStyle='#D8D0C0'; ctx.fill();
+  ctx.globalAlpha=alpha*.55; ctx.strokeStyle='#6A6258'; ctx.lineWidth=1;
+  [[sx-22,sy+2,sx-6,sy-4],[sx+6,sy+6,sx+26,sy+1]].forEach(([x1,y1,x2,y2])=>{
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  });
+  // label with backing
+  ctx.globalAlpha=alpha;
+  ctx.fillStyle='rgba(10,8,0,0.6)';
+  ctx.beginPath(); ctx.roundRect(TX-230,sy+36,460,38,6); ctx.fill();
+  ctx.textAlign='center';
+  ctx.font="600 13px 'Crimson Pro',Georgia,serif"; ctx.fillStyle='#D4B878';
+  ctx.fillText('De steen — fundament & de zwaarte die ik heb gedragen', TX, sy+52);
+  ctx.font="italic 11px 'Crimson Pro',Georgia,serif"; ctx.fillStyle='#A89050';
+  ctx.fillText('Zwaar maar onmisbaar — het houdt de boom op zijn plek', TX, sy+66);
+  ctx.restore();
+}
+
+// ── seed ─────────────────────────────────────────────────────────
+function drawSeed(alpha){
+  if(alpha<=0) return;
+  ctx.save(); ctx.globalAlpha=alpha;
+  let sx=128, sy=GY-6;
+  let g=ctx.createRadialGradient(sx-5,sy-4,2,sx,sy,18);
+  g.addColorStop(0,'#D4A840'); g.addColorStop(1,'#7A5010');
+  ctx.beginPath(); ctx.ellipse(sx,sy,18,11,0,0,Math.PI*2);
+  ctx.fillStyle=g; ctx.fill(); ctx.strokeStyle='#8A6010'; ctx.lineWidth=1.2; ctx.stroke();
+  ctx.globalAlpha=alpha*.45;
+  ctx.beginPath(); ctx.ellipse(sx-5,sy-5,7,4,0,0,Math.PI*2);
+  ctx.fillStyle='#F0D060'; ctx.fill();
+  ctx.globalAlpha=alpha; ctx.strokeStyle='#3A8010'; ctx.lineWidth=2.2; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(sx,sy-10); ctx.quadraticCurveTo(sx+6,sy-24,sx+12,sy-30); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(sx+8,sy-22); ctx.quadraticCurveTo(sx+16,sy-18,sx+20,sy-20); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(sx+6,sy-26); ctx.quadraticCurveTo(sx-2,sy-22,sx-4,sy-20); ctx.stroke();
+  // label with backing
+  ctx.fillStyle='rgba(10,8,0,0.6)';
+  ctx.beginPath(); ctx.roundRect(38,GY-68,178,40,6); ctx.fill();
+  ctx.textAlign='center'; ctx.font="600 12px 'Crimson Pro',Georgia,serif"; ctx.fillStyle='#D4C870';
+  ctx.fillText('Het zaadje', 128, GY-52);
+  ctx.font="italic 11px 'Crimson Pro',Georgia,serif"; ctx.fillStyle='#A0A040';
+  ctx.fillText('Begin — vol potentieel', 128, GY-38);
+  ctx.restore();
+}
+
+// ── trunk ────────────────────────────────────────────────────────
+function drawTrunk(prog, alpha=1, tilt=0){
+  if(alpha<=0||prog<=0) return;
+  ctx.save(); ctx.globalAlpha=alpha;
+  if(tilt){ ctx.translate(TX,GY); ctx.rotate(tilt*Math.PI/180); ctx.translate(-TX,-GY); }
+  let topY = GY - (GY-200)*prog;
+  let g=ctx.createLinearGradient(TX-28,0,TX+28,0);
+  g.addColorStop(0,'#3A1E08'); g.addColorStop(.35,'#7A5030'); g.addColorStop(.72,'#A07848'); g.addColorStop(1,'#3A1E08');
+  ctx.beginPath();
+  ctx.moveTo(TX-28,GY); ctx.lineTo(TX-16,topY); ctx.lineTo(TX+16,topY); ctx.lineTo(TX+28,GY);
+  ctx.closePath(); ctx.fillStyle=g; ctx.fill();
+  // grain
+  ctx.globalAlpha=alpha*.18; ctx.strokeStyle='#C0A068'; ctx.lineWidth=2; ctx.lineCap='round';
+  for(let gx of [-8,0,10]){
+    ctx.beginPath(); ctx.moveTo(TX+gx,GY); ctx.lineTo(TX+gx*.5,topY); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ── branches ──────────────────────────────────────────────────────
+function drawBranches(prog, alpha=1, tilt=0){
+  if(alpha<=0||prog<=0) return;
+  ctx.save(); ctx.globalAlpha=alpha;
+  if(tilt){ ctx.translate(TX,GY); ctx.rotate(tilt*Math.PI/180); ctx.translate(-TX,-GY); }
+  const BR=[
+    [TX-18,510, TX-185,368, 18],[TX+18,510, TX+185,368, 18],
+    [TX-14,405, TX-245,272, 14],[TX+14,405, TX+245,272, 14],
+    [TX-10,318, TX-165,216, 10],[TX+10,318, TX+165,216, 10],
+    [TX-10,318, TX-90,196,   7],[TX+10,318, TX+90,196,   7],
+    [TX-245,272,TX-296,228,   7],[TX-245,272,TX-276,238,  5],
+    [TX+245,272,TX+296,228,   7],[TX+245,272,TX+276,238,  5],
+  ];
+  let g=ctx.createLinearGradient(0,200,0,700);
+  g.addColorStop(0,'#3A1E08'); g.addColorStop(.5,'#7A5030'); g.addColorStop(1,'#3A1E08');
+  ctx.strokeStyle=g; ctx.lineCap='round';
+  for(let b of BR){
+    ctx.lineWidth=b[4];
+    ctx.beginPath(); ctx.moveTo(b[0],b[1]);
+    ctx.lineTo(lerp(b[0],b[2],prog), lerp(b[1],b[3],prog));
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ── crown blobs ───────────────────────────────────────────────────
+function drawCrown(prog, alpha=1, tilt=0){
+  if(alpha<=0||prog<=0) return;
+  ctx.save(); ctx.globalAlpha=alpha;
+  if(tilt){ ctx.translate(TX,GY); ctx.rotate(tilt*Math.PI/180); ctx.translate(-TX,-GY); }
+  const BL=[
+    [TX,   218, 148,128,'#1A6010', 0.00],
+    [TX-192,275, 104, 90,'#267020',0.08],[TX+192,272, 102, 88,'#267020',0.10],
+    [TX-102,198,  90, 76,'#2E8226',0.18],[TX+102,195,  88, 74,'#2E8226',0.20],
+    [TX,   168, 108, 82,'#3A9E2E',0.26],
+    [TX-58, 148,  70, 58,'#4AB83A',0.34],[TX+58, 145,  68, 56,'#4AB83A',0.36],
+    [TX,   126,  84, 62,'#5ED040',0.44],
+    [TX-32, 108,  55, 46,'#70E058',0.52],[TX+32, 105,  53, 44,'#70E058',0.54],
+    [TX,    90,  52, 38,'#84F068',0.62],
+  ];
+  for(let b of BL){
+    let lp=clamp((prog-b[5])/(1-b[5]),0,1);
+    let s=easeOut(lp);
+    ctx.save(); ctx.translate(b[0],b[1]); ctx.scale(s,s);
+    ctx.beginPath(); ctx.ellipse(0,0,b[2],b[3],0,0,Math.PI*2);
+    ctx.fillStyle=b[4]; ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+// ── propedeuse label (pre-lightning, left of trunk) ───────────────
+function drawPropLabel(alpha){
+  if(alpha<=0) return;
+  ctx.save(); ctx.globalAlpha=alpha;
+  // backing
+  ctx.fillStyle='rgba(8,12,4,0.68)';
+  ctx.beginPath(); ctx.roundRect(42,560,250,90,8); ctx.fill();
+  ctx.textAlign='left';
+  ctx.font="700 13px 'Playfair Display',serif"; ctx.fillStyle='#8FD870';
+  ctx.fillText('Propedeuse gehaald', 54, 580);
+  ctx.font="11px 'Crimson Pro',Georgia,serif"; ctx.fillStyle='#72B858';
+  ctx.fillText('Rechten & finance — zwaarste vakken', 54, 597);
+  ctx.fillText('Alleen gestudeerd, laat opgezeten', 54, 613);
+  ctx.font="italic 10px 'Crimson Pro',Georgia,serif"; ctx.fillStyle='#5A9840';
+  ctx.fillText('Bewijs: discipline > talent', 54, 629);
+  // leader
+  ctx.strokeStyle='#4A7830'; ctx.lineWidth=1; ctx.setLineDash([5,3]);
+  ctx.beginPath(); ctx.moveTo(294,600); ctx.lineTo(TX-30,590); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+// ── BUVA label (post-regrowth, right of trunk) ────────────────────
+function drawBuvaLabel(alpha){
+  if(alpha<=0) return;
+  ctx.save(); ctx.globalAlpha=alpha;
+  ctx.fillStyle='rgba(8,12,4,0.68)';
+  ctx.beginPath(); ctx.roundRect(TX+38,530,270,100,8); ctx.fill();
+  ctx.textAlign='left';
+  ctx.font="700 13px 'Playfair Display',serif"; ctx.fillStyle='#8FD870';
+  ctx.fillText('Stage BUVA', TX+52, 552);
+  ctx.font="11px 'Crimson Pro',Georgia,serif"; ctx.fillStyle='#72B858';
+  ctx.fillText('Inkoop & verkoop verbonden', TX+52, 569);
+  ctx.fillText('Interviews & SFA-matrix', TX+52, 585);
+  ctx.fillText('Draagvlak gecreëerd', TX+52, 601);
+  ctx.font="italic 10px 'Crimson Pro',Georgia,serif"; ctx.fillStyle='#5A9840';
+  ctx.fillText('"Je verbindt mensen op een bijzondere manier"', TX+52, 617);
+  // leader
+  ctx.strokeStyle='#4A7830'; ctx.lineWidth=1; ctx.setLineDash([5,3]);
+  ctx.beginPath(); ctx.moveTo(TX+38,580); ctx.lineTo(TX+26,575); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+// ── lightning flash ───────────────────────────────────────────────
+function drawFlash(a){
+  if(a<=0) return;
+  ctx.save(); ctx.globalAlpha=a;
+  ctx.fillStyle='#FFFFF5'; ctx.fillRect(0,0,W,H);
+  ctx.restore();
+}
+
+// ── lightning bolt ────────────────────────────────────────────────
+function drawBolt(a){
+  if(a<=0) return;
+  ctx.save(); ctx.globalAlpha=a;
+  ctx.shadowBlur=35; ctx.shadowColor='#FFEE00';
+  let bx=TX+14;
+  let pts=[[bx+10,80],[bx-12,200],[bx+10,200],[bx-20,340],[bx+16,340],[bx-18,500]];
+  ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1]);
+  for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0],pts[i][1]);
+  ctx.closePath();
+  ctx.fillStyle='#F8E030'; ctx.fill();
+  ctx.strokeStyle='#FFFF80'; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.shadowBlur=0; ctx.restore();
+}
+
+// ── scar (permanent after lightning) ─────────────────────────────
+function drawScar(alpha){
+  if(alpha<=0) return;
+  ctx.save(); ctx.globalAlpha=alpha;
+  // dark patch
+  let g=ctx.createRadialGradient(TX+6,478,4,TX+6,478,28);
+  g.addColorStop(0,'#040100'); g.addColorStop(1,'rgba(40,14,2,0)');
+  ctx.beginPath(); ctx.ellipse(TX+6,478,22,44,0,0,Math.PI*2);
+  ctx.fillStyle=g; ctx.fill();
+  // crack lines
+  ctx.strokeStyle='#160800'; ctx.lineWidth=2.8; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(TX+2,446); ctx.lineTo(TX-4,466); ctx.lineTo(TX+4,480); ctx.lineTo(TX-4,498); ctx.stroke();
+  ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(TX+12,454); ctx.lineTo(TX+8,468); ctx.stroke();
+  // small bolt mark on scar
+  ctx.globalAlpha=alpha*.55; ctx.fillStyle='#F8C020';
+  ctx.beginPath();
+  ctx.moveTo(TX+18,448); ctx.lineTo(TX+8,470); ctx.lineTo(TX+15,470);
+  ctx.lineTo(TX+4,494); ctx.lineTo(TX+22,468); ctx.lineTo(TX+14,468); ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+// ── scar label (stays visible after lightning) ─────────────────────
+function drawScarLabel(alpha){
+  if(alpha<=0) return;
+  ctx.save(); ctx.globalAlpha=alpha;
+  // backing box, left of trunk
+  ctx.fillStyle='rgba(30,8,0,0.72)';
+  ctx.beginPath(); ctx.roundRect(42,400,264,112,8); ctx.fill();
+  ctx.textAlign='left';
+  ctx.font="700 13px 'Playfair Display',serif"; ctx.fillStyle='#F06030';
+  ctx.fillText('De tegenslag', 54, 422);
+  ctx.font="11px 'Crimson Pro',Georgia,serif"; ctx.fillStyle='#D04020';
+  ctx.fillText('Verlies van opa en oma', 54, 440);
+  ctx.fillText('Whiplash na auto-ongeluk', 54, 456);
+  ctx.fillText('Studieachterstand opgelopen', 54, 472);
+  ctx.font="italic 10px 'Crimson Pro',Georgia,serif"; ctx.fillStyle='#C03818';
+  ctx.fillText('Boom viel bijna om —', 54, 490);
+  ctx.fillText('maar de wortels hielden stand', 54, 504);
+  // leader line to scar
+  ctx.strokeStyle='#C03818'; ctx.lineWidth=1; ctx.setLineDash([5,3]);
+  ctx.beginPath(); ctx.moveTo(308,460); ctx.lineTo(TX-26,470); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+// ── fruits ────────────────────────────────────────────────────────
+function drawFruit(x,y,r,col,glo,lines,side,alpha){
+  if(alpha<=0) return;
+  ctx.save(); ctx.globalAlpha=alpha;
+  // shadow
+  ctx.beginPath(); ctx.ellipse(x+3,y+4,r,r*.6,0,0,Math.PI*2);
+  ctx.fillStyle='rgba(0,0,0,.3)'; ctx.fill();
+  // body
+  let g=ctx.createRadialGradient(x-r*.35,y-r*.3,r*.1,x,y,r);
+  g.addColorStop(0,glo); g.addColorStop(1,col);
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+  ctx.fillStyle=g; ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,.35)'; ctx.lineWidth=1.2; ctx.stroke();
+  // shine
+  ctx.beginPath(); ctx.ellipse(x-r*.3,y-r*.3,r*.24,r*.14,-.5,0,Math.PI*2);
+  ctx.fillStyle='rgba(255,255,255,.35)'; ctx.fill();
+  // stem
+  ctx.strokeStyle='#3A8010'; ctx.lineWidth=2.2; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(x,y-r); ctx.quadraticCurveTo(x+5,y-r-14,x+8,y-r-18); ctx.stroke();
+
+  // label backing
+  let maxW=Math.max(...lines.map(l=>l.length))*7+16;
+  let bh=lines.length*17+10, lx=side==='left'?x-r-14-maxW:x+r+14;
+  let by=y-bh/2;
+  ctx.fillStyle='rgba(8,6,0,0.65)';
+  ctx.beginPath(); ctx.roundRect(lx-4,by-4,maxW+8,bh+8,5); ctx.fill();
+
+  ctx.textAlign=side==='left'?'right':'left';
+  let tx=side==='left'?x-r-16:x+r+16;
+  for(let i=0;i<lines.length;i++){
+    ctx.fillStyle = i===0?'#F2C8A0':(i===1?'#C89868':'#A07848');
+    ctx.font = i===0?"700 12px 'Playfair Display',serif":"italic 10px 'Crimson Pro',serif";
+    ctx.fillText(lines[i], tx, by+8+i*17+10);
+  }
+  // leader
+  ctx.strokeStyle='rgba(200,160,80,.55)'; ctx.lineWidth=.9; ctx.setLineDash([4,3]);
+  ctx.beginPath();
+  if(side==='left'){ ctx.moveTo(x-r-2,y); ctx.lineTo(tx+2,y); }
+  else { ctx.moveTo(x+r+2,y); ctx.lineTo(tx-2,y); }
+  ctx.stroke(); ctx.setLineDash([]);
+  ctx.restore();
+}
+
+function drawFruits(alpha){
+  if(alpha<=0) return;
+  [
+    {x:TX-278,y:355,r:22,col:'#A01808',glo:'#F27060',lines:['Luistervaardigheid','GROW-model & schaalvragen','Coachgesprekken gevoerd'],side:'left'},
+    {x:TX+278,y:352,r:22,col:'#A01808',glo:'#F27060',lines:['Draagvlak creëren','Mensen meenemen in proces','BUVA: beide afdelingen verbonden'],side:'right'},
+    {x:TX-226,y:250,r:20,col:'#780840',glo:'#E060A0',lines:['Consultancy ambitie','Advies- en salesrol','Mensen overtuigen & bewegen'],side:'left'},
+    {x:TX+226,y:248,r:20,col:'#780840',glo:'#E060A0',lines:['Verantwoordelijkheid','Ook als het moeilijk was','Achterstand zelf ingehaald'],side:'right'},
+    {x:TX-135,y:175,r:17,col:'#A01808',glo:'#F27060',lines:['Zelfkennis','Wie ik ben als bedrijfskundige','Sociaal, eerlijk, nieuwsgierig'],side:'left'},
+    {x:TX+135,y:172,r:17,col:'#780840',glo:'#E060A0',lines:['Discipline','Doorzetten > talent','Laat maar altijd klaar'],side:'right'},
+  ].forEach(f=>drawFruit(f.x,f.y,f.r,f.col,f.glo,f.lines,f.side,alpha));
+}
+
+// ── book ──────────────────────────────────────────────────────────
+function drawBook(alpha){
+  if(alpha<=0) return;
+  ctx.save(); ctx.globalAlpha=alpha;
+  let bx=TX-27,by=218,bw=54,bh=40;
+  ctx.fillStyle='rgba(0,0,0,.3)';
+  ctx.beginPath(); ctx.roundRect(bx+3,by+4,bw,bh,4); ctx.fill();
+  let g=ctx.createLinearGradient(bx,by,bx+bw,by);
+  g.addColorStop(0,'#1A3080'); g.addColorStop(1,'#0A1850');
+  ctx.fillStyle=g; ctx.beginPath(); ctx.roundRect(bx,by,bw,bh,4); ctx.fill();
+  ctx.strokeStyle='#0A1040'; ctx.lineWidth=1.2; ctx.stroke();
+  ctx.fillStyle='#F8F2E4'; ctx.beginPath(); ctx.roundRect(bx+8,by,bw-8,bh,3); ctx.fill();
+  ctx.strokeStyle='#D0C8A0'; ctx.lineWidth=.8; ctx.stroke();
+  ctx.fillStyle='#2A4898'; ctx.beginPath(); ctx.roundRect(bx,by,10,bh,3); ctx.fill();
+  ctx.strokeStyle='#C0B888'; ctx.lineWidth=.9;
+  for(let i=0;i<4;i++){ ctx.beginPath(); ctx.moveTo(bx+14,by+10+i*8); ctx.lineTo(bx+bw-5,by+10+i*8); ctx.stroke(); }
+  // label backing
+  ctx.fillStyle='rgba(8,6,0,0.65)';
+  ctx.beginPath(); ctx.roundRect(TX-190,by+bh+4,380,34,5); ctx.fill();
+  ctx.textAlign='center'; ctx.font="600 11px 'Crimson Pro',Georgia,serif"; ctx.fillStyle='#6090E0';
+  ctx.fillText('Kennis & discipline — het boek dat ik heb volgeschreven', TX, by+bh+19);
+  ctx.font="italic 10px 'Crimson Pro',Georgia,serif"; ctx.fillStyle='#4870B8';
+  ctx.fillText('door hard werken en nooit opgeven', TX, by+bh+32);
+  ctx.restore();
+}
+
+// ── key ───────────────────────────────────────────────────────────
+function drawKey(alpha){
+  if(alpha<=0) return;
+  ctx.save(); ctx.globalAlpha=alpha;
+  ctx.shadowBlur=16; ctx.shadowColor='rgba(220,180,30,.5)';
+  let kx=TX,ky=62;
+  let g=ctx.createRadialGradient(kx-18,ky-6,3,kx-14,ky,18);
+  g.addColorStop(0,'#F8E050'); g.addColorStop(1,'#B09020');
+  ctx.beginPath(); ctx.arc(kx-14,ky,16,0,Math.PI*2);
+  ctx.strokeStyle='#D4A820'; ctx.lineWidth=5; ctx.stroke();
+  ctx.beginPath(); ctx.arc(kx-14,ky,8,0,Math.PI*2);
+  ctx.fillStyle=g; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(kx+2,ky); ctx.lineTo(kx+50,ky);
+  ctx.strokeStyle='#D4A820'; ctx.lineWidth=6; ctx.lineCap='round'; ctx.stroke();
+  for(let [tx,th] of [[kx+42,13],[kx+36,10],[kx+30,12],[kx+24,8]]){
+    ctx.beginPath(); ctx.moveTo(tx,ky); ctx.lineTo(tx,ky+th); ctx.lineWidth=4; ctx.stroke();
+  }
+  ctx.shadowBlur=0;
+  // label backing
+  ctx.fillStyle='rgba(8,6,0,.65)';
+  ctx.beginPath(); ctx.roundRect(TX-210,ky-40,420,30,5); ctx.fill();
+  ctx.beginPath(); ctx.roundRect(TX-200,ky+22,400,42,5); ctx.fill();
+  ctx.textAlign='center'; ctx.font="700 13px 'Playfair Display',serif"; ctx.fillStyle='#D4A820';
+  ctx.fillText('De sleutel tot mijn toekomst', TX, ky-20);
+  ctx.font="italic 11px 'Crimson Pro',Georgia,serif"; ctx.fillStyle='#A08018';
+  ctx.fillText('Consultancy, verbinder, adviseur', TX, ky+36);
+  ctx.font="italic 10px 'Crimson Pro',Georgia,serif"; ctx.fillStyle='#887010';
+  ctx.fillText('Barendrecht & Rotterdam regio', TX, ky+50);
+  ctx.restore();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// TIMELINE (seconds)
+// ══════════════════════════════════════════════════════════════════
+const T={
+  roots:      {s:0,    d:2.6},
+  ugTitle:    {s:0.5,  d:0.8},
+  stone:      {s:1.6,  d:0.9},
+  seed:       {s:1.9,  d:0.9},
+  trunk:      {s:2.3,  d:2.2},
+  branches:   {s:3.8,  d:1.3},
+  crown:      {s:4.7,  d:2.0},
+  propLabel:  {s:3.6,  d:0.9},   // propedeuse label appears during first growth
+  pause:      {s:6.9,  d:0.9},   // full tree pause
+  flash:      {s:7.8,  d:0.5},
+  bolt:       {s:7.8,  d:0.7},
+  fall:       {s:8.3,  d:1.5},   // tree tilts
+  fadeOut:    {s:9.6,  d:1.8},   // tilted tree fades
+  scarApp:    {s:9.8,  d:0.9},   // scar appears
+  scarLabel:  {s:10.2, d:1.0},   // tegenslag tekst
+  propFade:   {s:9.6,  d:1.2},   // propedeuse label fades with tree
+  regrow:     {s:11.4, d:3.0},   // regrow
+  buva:       {s:13.5, d:1.0},   // BUVA label after regrow
+  fruits:     {s:14.2, d:1.4},
+  book:       {s:14.8, d:0.9},
+  key:        {s:15.4, d:1.0},
+  rootLabels: {s:16.0, d:1.2},
+};
+
+function pp(t,ph){ return clamp((t-ph.s)/ph.d,0,1); }
+
+let t0=null, legendDone=false;
+
+function frame(ts){
+  if(!t0) t0=ts;
+  let t=(ts-t0)/1000;
+  ctx.clearRect(0,0,W,H);
+
+  drawBg();
+  drawUndergroundTitle(easeOut(pp(t,T.ugTitle)));
+  drawRoots(easeOut(pp(t,T.roots)));
+  drawStone(easeOut(pp(t,T.stone)));
+  drawSeed(easeOut(pp(t,T.seed)));
+
+  // propedeuse label — fades with falling tree
+  let propA = easeOut(pp(t,T.propLabel)) * (1-easeOut(pp(t,T.propFade)));
+  drawPropLabel(propA);
+
+  // ── FIRST GROWTH (upright) ──
+  let trunkP  = easeOut(pp(t,T.trunk));
+  let branchP = easeOut(pp(t,T.branches));
+  let crownP  = easeOut(pp(t,T.crown));
+
+  // before fall: draw upright tree
+  if(t < T.fall.s + 0.15){
+    drawTrunk(trunkP);
+    drawBranches(branchP);
+    drawCrown(crownP);
+  }
+
+  // ── FALLING TREE ──
+  let fallP   = easeIn(pp(t,T.fall));
+  let fadeP   = easeOut(pp(t,T.fadeOut));
+  if(t >= T.fall.s){
+    let tilt = fallP*38;
+    let fa   = 1-fadeP;
+    drawTrunk(1,fa,tilt);
+    drawBranches(1,fa,tilt);
+    drawCrown(1,fa,tilt);
+  }
+
+  // ── LIGHTNING ──
+  let flashRaw = pp(t,T.flash);
+  let flashA   = flashRaw<.3 ? flashRaw/.3 : 1-(flashRaw-.3)/.7;
+  drawFlash(flashA*.9);
+  let boltA    = Math.min(pp(t,T.bolt)*5,1) * (1-Math.max(pp(t,T.bolt)-.6,0)/.4);
+  drawBolt(boltA);
+
+  // ── SCAR + LABEL (stays permanently) ──
+  drawScar(easeOut(pp(t,T.scarApp)));
+  drawScarLabel(easeOut(pp(t,T.scarLabel)));
+
+  // ── REGROWTH ──
+  let regP=easeOut(pp(t,T.regrow));
+  if(t>=T.regrow.s){
+    drawTrunk(regP);
+    drawBranches(regP);
+    drawCrown(regP);
+    // scar must sit on top of regrown trunk
+    drawScar(1);
+  }
+
+  // ── BUVA (only after regrow) ──
+  drawBuvaLabel(easeOut(pp(t,T.buva)));
+
+  // ── FRUITS / BOOK / KEY / ROOT LABELS ──
+  drawFruits(easeBack(clamp(pp(t,T.fruits),0,1)));
+  drawBook(easeOut(pp(t,T.book)));
+  drawKey(easeOut(pp(t,T.key)));
+  drawRootLabels(easeOut(pp(t,T.rootLabels)));
+
+  // stage text
+  if(t<1.5)          setStageOnce('r','De wortels zoeken hun weg...');
+  else if(t<2.3)     setStageOnce('s','De steen legt het fundament...');
+  else if(t<4.7)     setStageOnce('tr','De stam groeit — propedeuse gehaald...');
+  else if(t<6.7)     setStageOnce('cr','De kroon waaiert uit — de boom staat...');
+  else if(t<7.6)     setStageOnce('fp','De boom staat in volle glorie...');
+  else if(t<8.8)     setStageOnce('bl','⚡ De bliksem slaat in...');
+  else if(t<11)      setStageOnce('fl','De boom valt half om — maar de wortels houden...');
+  else if(t<14)      setStageOnce('rg','De boom herstelt zich — de stage bij BUVA...');
+  else if(t<15.5)    setStageOnce('fr','De vruchten rijpen — de oogst van jaren groei...');
+  else               setStageOnce('dn','De boom staat volgroeid — met al zijn vruchten.');
+
+  if(t>17&&!legendDone){ legendDone=true; document.getElementById('legend').classList.add('visible'); }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
